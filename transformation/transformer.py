@@ -133,32 +133,50 @@ class StandardScaler():
     def __init__(self):
         self.mean=None
         self.std=None
+        self.dtypes=None
     def get_params(self):
         return {'Mean':self.mean,'Standard-Deviation':self.std}
     
     def fit(self,data):
-        data=data.to_series()
         self.mean=data.mean()
         self.std=data.std()
 
     def fit_transform(self,data):
+        self.dtypes=data.dtypes
         self.fit(data)
-        return  (data-self.mean)/self.std
+
+        return  data.with_columns([
+                            ((pl.col(col)-self.mean[col])/self.std[col]) for col in data.columns 
+                                   ])
+    def inverse_transform(self,data):
+        inversed_data=data.with_columns([
+                            ((pl.col(col)*self.std[col]+self.mean[col])) for col in data.columns  
+                                    ])
+        return inversed_data.with_columns([(pl.col(col).cast(self.dtypes[i])) for i,col in enumerate(inversed_data.columns)])
 
 class RobustScaler():
     def __init__(self):
         self.mean=None
         self.p75=None
         self.p25=None
+        self.dtypes=None
     def get_params(self):
         return {'Mean':self.mean,'Q75':self.p75, 'Q25':self.p25}
     
     def fit(self,data):
-        data=data.to_series()
         self.mean=data.mean()
         self.p75=data.quantile(quantile=0.75)
         self.p25=data.quantile(quantile=0.25)
 
     def fit_transform(self,data):
+        self.dtypes=data.dtypes
         self.fit(data)
-        return  (data-self.mean)/(self.p75-self.p25)
+        return data.with_columns([
+                    ((pl.col(col)-self.mean[col])/(self.p75[col]-self.p25[col])) for col in data.columns          
+                                ])
+    
+    def inverse_transform(self,data):
+        inversed_data=data.with_columns([
+                        (pl.col(col)*(self.p75[col]-self.p25[col])+self.mean[col]) for col in data.columns
+                                    ])
+        return inversed_data.with_columns([(pl.col(col).cast(self.dtypes[i])) for i,col in enumerate(inversed_data.columns)])
