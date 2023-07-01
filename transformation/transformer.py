@@ -1,6 +1,8 @@
 from sklearn.preprocessing import MinMaxScaler
 import polars as pl
-from Errors import DependencyError
+import sys
+sys.path.insert(0, r'talmin')
+from transformation.Errors import DependencyError
 
 import polars as pl
 
@@ -40,31 +42,28 @@ class LabelEncoder():
     """
     def __init__(self):
         self.labels_={}
-        self.classes_ = []
-        
     def get_encoding(self):
         return self.labels_
     
     def check_data_type(self,data):
+        print(data.dtypes)
         if data.dtypes[0] in discrete:
             return True
         else:
             raise TypeError('The Data in this Column is not discrete and thus should not be transformed with the LabelEncoder')
         
-    def fit(self, data):
-        self.classes_ = data.unique().to_series().to_list()
-        for i, label in enumerate(self.classes_):
-            self.labels_[label]=i
+    def fit(self, data,col):
+        uni=data.get_column(col).unique()
+        self.labels_=dict(zip(uni,range(len(uni))))
+       
 
-    def transform(self, data:pl.DataFrame):
-        if self.check_data_type(data):
-            try:
-                return data.to_series().map_dict(self.labels_)
-            except:
-                raise DependencyError('The Encoding did not work, perhaps you can resolve this by installing pyarrow via pip install pyarrow','pyarrow')
-    def fit_transform(self, data:pl.DataFrame):
-        self.fit(data)
-        return self.transform(data)
+    def transform(self, data:pl.DataFrame,col):
+        return data.with_columns(pl.col(col).map_dict(self.labels_))
+        
+    def fit_transform(self, data:pl.DataFrame,col:str):
+        self.check_data_type(data)
+        self.fit(data,col)
+        return self.transform(data,col)
 
     def inverse_transform(self, data_encoded:pl.DataFrame):
         inversed_labels_={val: key for (key, val) in self.labels_.items()}

@@ -1,0 +1,15 @@
+- change types is not working corectly
+
+- scaling does not work
+
+- activate buttons only when something is slected
+
+- Dimensionality Reduction
+
+- Synthetic Data Generation
+    PATCH Transfromer
+    CTGAN
+    Variational Autoencoder
+    Diffusion
+    SPLOM?
+    CART
