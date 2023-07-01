@@ -9,16 +9,17 @@ import sys
 # insert package path to get the utils components
 sys.path.insert(0, r'talmin')
 from utils.Base_Components import *
-from plotting.Base_Plotter import PlotlyFigure
+from utils.polars_addons import detect_column_types
+from plotting.Base_Plotter import Base_Fig
 import polars as pl
 
 
 
-class DataReader():
+class DataReader(dash.Dash):
     def __init__(self,id):
         self.data_path=None
         self.file_type=None
-        self.data=None
+        self.data=pl.DataFrame()
         self.has_header=True
         self.seperator=','
         self.low_memory=False
@@ -52,15 +53,17 @@ class DataReader():
     def get_data(self):
         """
         get data:
-        We use the data path to give a source for polars to scan. Other Parameters are mainly used for csv
+        We use the data path to give a source for polars to read. Other Parameters are mainly used for csv
         If there is not data path or no file type the data path or file type get set to false, this is going to be used to return the Error to the UI
         """
         if self.data_path:
             if self.file_type:
                 if self.file_type=='csv':
                     self.data=pl.read_csv(source=self.data_path,has_header=self.has_header,low_memory=self.low_memory)
+                    self.data=self.data.rename({col:f'{col} [{dtype}]' for col,dtype in zip(self.data.columns,self.data.dtypes)})
                 elif self.file_type=='parquet':
-                    self.data=pl.scan_parquet(source=self.data_path)
+                    self.data=pl.read_parquet(source=self.data_path)
+                    self.data=self.data.rename({col:f'{col} [{dtype}]' for col,dtype in zip(self.data.columns,self.data.dtypes)})
                 else: self.data='file_type'
             else: self.data='file_type'
         else: self.data='data_path'
@@ -70,7 +73,7 @@ class DataReader():
             dbc.Row([
             dbc.Col(dbc.Stack([create_Text_Input(id=f'data_path-input-{self.id}',placeholder='Enter a path to the file you want to read'),
                                create_Button(id=f'get-data-button-{self.id}',color='primary',children=['Read Data']),
-                               create_dropdown(id=f'select-filetype{self.id}',options=['csv','parquet'],value='parquet')],
+                               create_dropdown(id=f'select-filetype{self.id}',options=['csv','parquet'],value='csv')],
                                direction='horizontal',gap=2)),
             dbc.Col(dbc.Stack([create_dropdown(id=f'seperator-{self.id}',options=[',','.',';'],value=','),
                                create_dropdown(id=f'has_header-{self.id}',options=['With Column Names','Without Column Names'],value='With Column Names'),
@@ -78,6 +81,10 @@ class DataReader():
                                direction='horizontal',gap=2
                                )),
             ]),
+            dbc.Row(dbc.Col(html.Div(id=f'table-{self.id}')
+                    
+            )),
+            
             dbc.Tooltip(id=f'data_path-tipp-{self.id}',target=f'data_path-input-{self.id}',placement='top',className="ml-auto"),
             create_Tooltip(f'Those are the supported file types',target=f'select-filetype{self.id}'),
             create_Tooltip(f'You can select the seperator for csv files',target=f'seperator-{self.id}'),
@@ -130,14 +137,16 @@ class DataReader():
                 return True,'To read a file you must first specify a path to a *.csv or *.parquet file'
             
         @app.callback(Output(f'Info-div-{self.id}','children'),
-                      Input(f'get-data-button-{self.id}','n_clicks'))        
-        def read_data(clicks):
+                      Output(f'table-{self.id}','children'),  
+                      Input(f'get-data-button-{self.id}','n_clicks'),
+                      State(f'table-{self.id}','children'), 
+                      prevent_initial_call=True
+                      )        
+        def read_data(clicks,children):
             if clicks:
                 try:
-                    print(self.file_type)
                     self.get_data()
-                    print(self.data)
-                    return create_Toast(f'The file {self.data_path} was read sucessfully','Read Sucess','sucess')
+                    return create_Toast(f'The file {self.data_path} was read sucessfully','Read Sucess','sucess'),create_table(id=f'Table_grid-{self.id}',df=self.data)
                 except:
                     if self.data_path==False:
                         reason='an issue with the path occured'
@@ -145,6 +154,9 @@ class DataReader():
                         reason='an issue with the file type occured'
                     else:
                         reason='an unknown issure occured'
-                    return create_Toast(f'The file {self.data_path} could not be read, since {reason}.','Error','danger')
+                    return create_Toast(f'The file {self.data_path} could not be read, since {reason}.','Error','danger'),children
+                
+        
+                
 
     
