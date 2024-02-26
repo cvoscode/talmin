@@ -23,6 +23,7 @@ tqdm = "^4.66.2"
 umap-learn = "^0.5.5"
 xgboost = "^2.0.3"
 dash-bootstrap-templates = "^1.1.2"
+nbformat = "^5.9.2"
 
 
 [build-system]
