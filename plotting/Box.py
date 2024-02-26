@@ -15,7 +15,7 @@ from utils.polars_addons import detect_column_types
 save_path=''
 
 class BoxPlotter(Base_Fig):
-    def __init__(self, id):
+    def __init__(self, id,app):
         self.x=None
         self.y=None
         self.color=None
@@ -27,6 +27,7 @@ class BoxPlotter(Base_Fig):
         self.discrete_cols=None
         self.title=None
         self.id=id
+        self.cerate_base_callbacks(app)
     def update_title(self,title):
         self.title=title
 
@@ -34,6 +35,7 @@ class BoxPlotter(Base_Fig):
         self.data=df
         self.numeric_cols,self.temporal_cols,self.nested_cols,self.discrete_cols=detect_column_types(df)
         self.all_columns=df.columns
+        print(self.data)
 
     def set_x(self,x:str):
         """_summary_
@@ -113,9 +115,7 @@ class BoxPlotter(Base_Fig):
             html.Hr(),
             dbc.Col([
             create_dropdown_paging(id=f'X-{self.id}',options=self.discrete_cols,value=None,name='X-Column',multi=False),
-            create_Tooltip('Select a column from your data for the horizontal axis',target=f'X-{self.id}')
-            ]),
-            dbc.Col([
+            create_Tooltip('Select a column from your data for the horizontal axis',target=f'X-{self.id}'),
             create_dropdown_paging(id=f'Y-{self.id}',options=self.all_columns,value=None,name='Y-Column',multi=True),
             create_Tooltip('Select a column from your data for the vertical axis',target=f'Y-{self.id}')
             ]),
@@ -131,7 +131,8 @@ class BoxPlotter(Base_Fig):
             dbc.InputGroup([
             dbc.InputGroupText('Title'),
             create_Text_Input(placeholder='Provide a title for saving',id=f'title-{self.id}'),
-            create_Button(id=f'save-{self.id}',children=['Save Plot as HTML'],color='primary'),
+            create_Button(id=f'save-html-{self.id}',children=['Save Plot as HTML'],color='primary'),
+            #create_Button(id=f'save-json-{self.id}',children=['Save Plot as JSON'],color='primary'),
             ]),
             create_Tooltip('Set your plot Title, the same title is used while saving',target=f'title-{self.id}'),
             create_Tooltip('Save your plot as an HTML file under the globally set directory',target=f'save-{self.id}'),
@@ -140,9 +141,11 @@ class BoxPlotter(Base_Fig):
         return ui
     
     def cerate_base_callbacks(self, app):
+        print('callbacks created')
         @app.callback(Output(f"modal-fs-{self.id}",'is_open'),
                     Input(f'popup-button-{self.id}','n_clicks'),
-                    Input(f"close-modal-{self.id}",'n_clicks'),allow_duplicate=True)
+                    Input(f"close-modal-{self.id}",'n_clicks'),allow_duplicate=True,
+                    prevent_inital_call=True)
         def modal(popup,clos):
             if ctx.triggered_id==f'popup-button-{self.id}':
                 return True
@@ -151,7 +154,7 @@ class BoxPlotter(Base_Fig):
             
         @app.callback(Output(f'Graph-{self.id}','figure'),
                       Output(f'Graph-Modal-{self.id}','figure'),
-                      Output(f'plot_div-{self.id}','children',allow_duplicate=True),
+                      Output(f'plot_div-{self.id}','children'),
                       Input(f'X-{self.id}','value'),
                       Input(f'Y-{self.id}','value'),
                       Input(f'color-{self.id}','value'),
@@ -161,7 +164,9 @@ class BoxPlotter(Base_Fig):
         def vals(x,y,color,points,title):
             if ctx.triggered_id==f'X-{self.id}':
                 self.set_x(x)
+                print(x)
             elif ctx.triggered_id==f'Y-{self.id}':
+                print(y)
                 self.set_y(y)
             elif ctx.triggered_id==f'color-{self.id}':
                 self.set_color(color)
@@ -193,8 +198,8 @@ class BoxPlotter(Base_Fig):
         for id in [f'X-{self.id}',f'Y-{self.id}',f'color-{self.id}']:
             create_dropdown_paging_callback(id,app)
 
-        @app.callback(Output(f'plot_div-{self.id}','children',allow_duplicate=True),
-                      Input(f'save-{self.id}','n_clicks'),
+        @app.callback(Output(f'plot_div-{self.id}','children'),# allow duplicates war mal true, aber das gibt fehler
+                      Input(f'save-html-{self.id}','n_clicks'),
                       State(f'title-{self.id}','value'),
                       prevent_initial_callback=True
                       )

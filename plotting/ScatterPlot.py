@@ -15,7 +15,7 @@ from utils.polars_addons import detect_column_types
 save_path=''
 
 class ScatterPlotter(Base_Fig):
-    def __init__(self, id):
+    def __init__(self, id,app):
         self.z=None
         self.x=None
         self.y=None
@@ -36,6 +36,7 @@ class ScatterPlotter(Base_Fig):
         self.animation_group=None
         self.title=None
         self.id=id
+        self.cerate_base_callbacks(app)
     def update_title(self,title):
         self.title=title
 
@@ -123,7 +124,7 @@ class ScatterPlotter(Base_Fig):
                 self.fig.update_layout(title=self.title)
         elif self.y and self.x:
             self.fig=px.scatter(self.data.to_pandas(),x=self.x,y=self.y,color=self.color,size=self.size,marginal_x=self.marginal_x,marginal_y=self.marginal_y,trendline=self.trendline,trendline_options=self.trendline_options,facet_col=self.facet_col,
-                                animation_frame=self.animation_frame,animation_group=self.animation_group)
+                                animation_frame=self.animation_frame,animation_group=self.animation_group,render_mode='webgl')
             if self.title:
                 self.fig.update_layout(title=self.title)
         
@@ -166,23 +167,22 @@ class ScatterPlotter(Base_Fig):
             html.Hr(),
             dbc.Col([
             create_dropdown_paging(id=f'X-{self.id}',options=self.all_columns,value=None,name='X-Column',multi=False),
-            create_Tooltip('Select a column from your data for the horizontal axis',target=f'X-{self.id}')
-            ]),
-            dbc.Col([
+            create_Tooltip('Select a column from your data for the horizontal axis',target=f'X-{self.id}'),
             create_dropdown_paging(id=f'Y-{self.id}',options=self.all_columns,value=None,name='Y-Column',multi=False),
-            create_Tooltip('Select a column from your data for the vertical axis',target=f'Y-{self.id}')
-            ]),
-            dbc.Col([
+            create_Tooltip('Select a column from your data for the vertical axis',target=f'Y-{self.id}'),
             create_dropdown_paging(id=f'Z-{self.id}',options=self.all_columns,value=None,name='Z-Column',multi=False),
             create_Tooltip('Select a column from your data to create a 3d plot',target=f'Z-{self.id}')
             ]),
             dbc.Col([
             create_dropdown_paging(id=f'color-{self.id}',options=self.all_columns,value=None,name='Color-Column',multi=False),
-            create_Tooltip('Select a column from your data as color',target=f'color-{self.id}')
-            ]),
-            dbc.Col([
+            create_Tooltip('Select a column from your data as color',target=f'color-{self.id}'),
             create_dropdown_paging(id=f'size-{self.id}',options=self.numeric_cols,value=None,name='Size-Column',multi=False),
-            create_Tooltip('Select a column from your data as size',target=f'size-{self.id}')
+            create_Tooltip('Select a column from your data as size',target=f'size-{self.id}'),
+            dbc.InputGroup([
+            dbc.InputGroupText('Title'),
+            create_Text_Input(placeholder='Provide a title for saving',id=f'title-{self.id}'),
+            create_Button(id=f'save-{self.id}',children=['Save Plot as HTML'],color='primary'),
+            ]),
             ]),
             html.Hr(),
             dbc.Row([
@@ -211,11 +211,7 @@ class ScatterPlotter(Base_Fig):
             create_Tooltip('Select a comumn which is the target of the animation!',target=f'animation_group-{self.id}')
             ]),
             dbc.Col([
-            dbc.InputGroup([
-            dbc.InputGroupText('Title'),
-            create_Text_Input(placeholder='Provide a title for saving',id=f'title-{self.id}'),
-            create_Button(id=f'save-{self.id}',children=['Save Plot as HTML'],color='primary'),
-            ]),
+            
             create_Tooltip('Set your plot Title, the same title is used while saving',target=f'title-{self.id}'),
             create_Tooltip('Save your plot as an HTML file under the globally set directory',target=f'save-{self.id}'),
             ]),]),
@@ -230,8 +226,7 @@ class ScatterPlotter(Base_Fig):
             if ctx.triggered_id==f'popup-button-{self.id}':
                 return True
             if ctx.triggered_id==f"close-modal{self.id}":
-                return False
-            
+                return False  
         @app.callback(Output(f'Graph-{self.id}','figure'),
                       Output(f'Graph-Modal-{self.id}','figure'),
                       Output(f'plot_div-{self.id}','children',allow_duplicate=True),

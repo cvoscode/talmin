@@ -1,10 +1,9 @@
-- change types is not working corectly
 
-- scaling does not work
 
-- activate buttons only when something is slected
 
-- Dimensionality Reduction
+- activate scaling min max only on numeric cols
+
+- Stats Tab in Transfomer
 
 - Synthetic Data Generation
     PATCH Transfromer

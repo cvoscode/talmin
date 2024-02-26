@@ -16,7 +16,7 @@ from utils.polars_addons import detect_column_types
 save_path=''
 
 class PCPlotter(Base_Fig):
-    def __init__(self, id):
+    def __init__(self, id,app):
         self.x=None
         self.y=None
         self.color=None
@@ -28,6 +28,7 @@ class PCPlotter(Base_Fig):
         self.discrete_cols=None
         self.title=None
         self.id=id
+        self.cerate_base_callbacks(app)
     def update_title(self,title):
         self.title=title
 
@@ -45,7 +46,6 @@ class PCPlotter(Base_Fig):
         self.color=color
 
     def update_fig(self):
-
         dimensions = list([dict(range = [self.data[col].min(),self.data[col].max()],
          label = col, values = self.data[col],multiselect = True,) for col in self.numeric_cols])
         if len(dimensions)<12:
@@ -56,6 +56,7 @@ class PCPlotter(Base_Fig):
             self.fig=go.Figure(data=go.Parcoords(dimensions=dimensions,labelangle=labelangle,labelside='bottom',line = dict(color = self.data[self.color],showscale = True, colorbar = {'title': self.color}),unselected=dict(line={'opacity':0.1})))#name=figure_temp,colorscale = color_scale
         else:
             self.fig=go.Figure(data=go.Parcoords(dimensions=dimensions,labelangle=labelangle,labelside='bottom',unselected=dict(line={'opacity':0.1})))#name=figure_temp,
+        #print(self.fig.to_json())
         if self.title:
             self.fig.update_layout(title=self.title)
     
@@ -112,11 +113,16 @@ class PCPlotter(Base_Fig):
             ]),
         ])     
         return ui
-    
+
+
+
+
     def cerate_base_callbacks(self, app):
+       
+        #TODO callbacks are not registered???
         @app.callback(Output(f"modal-fs-{self.id}",'is_open'),
                     Input(f'popup-button-{self.id}','n_clicks'),
-                    Input(f"close-modal-{self.id}",'n_clicks'),allow_duplicate=True)
+                    Input(f"close-modal-{self.id}",'n_clicks'))
         def modal(popup,clos):
             if ctx.triggered_id==f'popup-button-{self.id}':
                 return True
@@ -125,10 +131,10 @@ class PCPlotter(Base_Fig):
             
         @app.callback(Output(f'Graph-{self.id}','figure'),
                       Output(f'Graph-Modal-{self.id}','figure'),
-                      Output(f'plot_div-{self.id}','children',allow_duplicate=True),
+                      Output(f'plot_div-{self.id}','children'),
                       Input(f'color-{self.id}','value'),
                       Input(f'title-{self.id}','value'),
-                      prevent_initial_call=True,)
+                      )
         def vals(color,title):
             if ctx.triggered_id==f'color-{self.id}':
                 self.set_color(color)
@@ -158,13 +164,14 @@ class PCPlotter(Base_Fig):
         for id in [f'color-{self.id}']:
             create_dropdown_paging_callback(id,app)
 
-        @app.callback(Output(f'plot_div-{self.id}','children',allow_duplicate=True),
+        @app.callback(Output(f'plot_div-{self.id}','children', allow_duplicate=True),
                       Input(f'save-{self.id}','n_clicks'),
                       State(f'title-{self.id}','value'),
-                      prevent_initial_callback=True
+                     
                       )
         #TODO correct save plot
         def save_plot(save,title):
+      
             if save:
                 super().save(self.fig,title,save_path)
                 return create_Toast(children=f'The plot was sucessfully saved to {save_path} under the name {title}',header='Plot saved',icon='sucess')

@@ -15,7 +15,7 @@ from utils.polars_addons import detect_column_types
 save_path=''
 
 class ViolinePlotter(Base_Fig):
-    def __init__(self, id):
+    def __init__(self, id,app):
         self.x=None
         self.y=None
         self.color=None
@@ -28,6 +28,7 @@ class ViolinePlotter(Base_Fig):
         self.discrete_cols=None
         self.title=None
         self.id=id
+        self.cerate_base_callbacks(app)
     def update_title(self,title):
         self.title=title
 
@@ -118,26 +119,23 @@ class ViolinePlotter(Base_Fig):
         ui=dbc.Row([
             html.Hr(),
             dbc.Col([
+            dbc.Stack([
             create_dropdown_paging(id=f'X-{self.id}',options=self.all_columns,value=None,name='X-Column',multi=False),
-            create_Tooltip('Select a column from your data for the horizontal axis',target=f'X-{self.id}')
-            ]),
-            dbc.Col([
+            create_Tooltip('Select a column from your data for the horizontal axis',target=f'X-{self.id}'),
             create_dropdown_paging(id=f'Y-{self.id}',options=self.all_columns,value=None,name='Y-Column',multi=True),
             create_Tooltip('Select a column from your data for the vertical axis',target=f'Y-{self.id}')
-            ]),
+            ],gap=3),]),
             dbc.Col([
+            dbc.Stack([
             create_dropdown_paging(id=f'color-{self.id}',options=self.discrete_cols,value=None,name='Color-Column',multi=False),
-            create_Tooltip('Select a column from your data as color',target=f'color-{self.id}')
-            ]),
-            dbc.Col([
+            create_Tooltip('Select a column from your data as color',target=f'color-{self.id}'),
             create_dropdown_paging(id=f'points-{self.id}',options=['all','outliers',False],value=False,name='Points',multi=False),
             create_Tooltip('Select a column from your data as color',target=f'points-{self.id}')
-            ]),
+            ],gap=3),]),
             dbc.Col([
+            dbc.Stack([  
             create_dropdown_paging(id=f'violinmode-{self.id}',options=['group','overlay'],value=None,name='Mode',multi=False),
-            create_Tooltip('Select a column from your data as color',target=f'violinmode-{self.id}')
-            ]),
-            dbc.Col([
+            create_Tooltip('Select a column from your data as color',target=f'violinmode-{self.id}'),
             dbc.InputGroup([
             dbc.InputGroupText('Title'),
             create_Text_Input(placeholder='Provide a title for saving',id=f'title-{self.id}'),
@@ -145,7 +143,7 @@ class ViolinePlotter(Base_Fig):
             ]),
             create_Tooltip('Set your plot Title, the same title is used while saving',target=f'title-{self.id}'),
             create_Tooltip('Save your plot as an HTML file under the globally set directory',target=f'save-{self.id}'),
-            ]),
+            ],gap=3),]),
         ])     
         return ui
     

@@ -23,15 +23,21 @@ class DataTransformer(dash.Dash):
         self.options=['all columns']+self.data.columns
         self.numeric_cols,self.temporal_cols,self.nested_cols,self.discrete_cols=None,None,None,None
         self.types=None
+       
 
     def set_data(self,df:pl.DataFrame):
         self.data=df
         self.numeric_cols,self.temporal_cols,self.nested_cols,self.discrete_cols=detect_column_types(self.data)
         self.options=['all columns']+self.data.columns
+        self.calc_stats(df)
+        
+    def calc_stats(self,df:pl.DataFrame):
+        print(df)
+        self.stats=df.describe().select(pl.exclude('describe')).transpose(column_names=['count','null_count','mean','std','min','25%','50%','75%','max'])[1:].with_columns(pl.Series("Original Columns", df.columns),pl.all())
     
     def get_ui(self):
         ui=html.Div([
-            dbc.Row(id=f'table-row-{self.id}',children=[create_table(id=f'trans-table-{self.id}',df=self.data)]),
+            dbc.Row(id=f'table-row-{self.id}',children=[dcc.Tabs(children=[dcc.Tab(label='Data',children=create_table(id=f'trans-table-{self.id}',df=self.data)),dcc.Tab(label='Statistics',children=create_table(id=f'stats-table-{self.id}',df=self.stats))])]),
             dbc.Row(id=f'info-row-{self.id}'),
             dbc.Row([dbc.Col([
                               dbc.Stack([
@@ -108,71 +114,71 @@ class DataTransformer(dash.Dash):
                 for col in self.numeric_cols:
                     if pl.first(variance[col])<=float(variance_threshold):
                         drop_cols.append(col)
-                self.data=self.data.drop(drop_cols)
+                self.set_data(self.data.drop(drop_cols))
                 drop_cols=', '.join(drop_cols)
-                return create_table(id=f'trans-table-{self.id}',df=self.data),create_Toast(children=[f'The following columns were dropped due to lower vaiance than {variance_threshold}: {drop_cols}'],header='Variance Filter',icon='sucess')
+                return [dcc.Tabs(children=[dcc.Tab(label='Data',children=create_table(id=f'trans-table-{self.id}',df=self.data)),dcc.Tab(label='Statistics',children=create_table(id=f'stats-table-{self.id}',df=self.stats))])],create_Toast(children=[f'The following columns were dropped due to lower vaiance than {variance_threshold}: {drop_cols}'],header='Variance Filter',icon='sucess')
             if ctx.triggered_id==f'drop-null-{self.id}':
                 if drop_col=='all columns':
-                    self.data=self.data.drop_nulls()
+                    self.set_data(self.data.drop_nulls())
                 else:
-                    self.data=self.data.drop_nulls(subset=drop_col)
-                return create_table(id=f'trans-table-{self.id}',df=self.data),create_Toast(children=[f'On {drop_col} the nulls where dropped!'],header='Drop Nulls',icon='sucess')
+                    self.set_data(self.data.drop_nulls(subset=drop_col))
+                return [dcc.Tabs(children=[dcc.Tab(label='Data',children=create_table(id=f'trans-table-{self.id}',df=self.data)),dcc.Tab(label='Statistics',children=create_table(id=f'stats-table-{self.id}',df=self.stats))])],create_Toast(children=[f'On {drop_col} the nulls where dropped!'],header='Drop Nulls',icon='sucess')
             if ctx.triggered_id==f'Label-encode-{self.id}':
                 if scale_col=='all columns':
                     # try:
                     label=LabelEncoder()
                     print(label.fit_transform(self.data.select(pl.col(col) for col in self.discrete_cols),self.discrete_cols))
-                    self.data=self.data.with_columns(label.fit_transform(self.data.select(pl.col(col) for col in self.discrete_cols),self.discrete_cols))
+                    self.set_data(self.data.with_columns(label.fit_transform(self.data.select(pl.col(col) for col in self.discrete_cols),self.discrete_cols)))
                     sucess=True
                     # except:
                     #     sucess=False
                 else:
                     # try:
                     label=LabelEncoder()
-                    self.data=self.data.with_columns(label.fit_transform(self.data.select(pl.col(scale_col)),scale_col))
+                    self.set_data(self.data.with_columns(label.fit_transform(self.data.select(pl.col(scale_col)),scale_col)))
                     sucess=True
                     # except:
                     #     sucess=False
                 if sucess:
-                    return create_table(id=f'trans-table-{self.id}',df=self.data),create_Toast(children=[f'{scale_col}  was Label Encoded!'],header='Label Encoder',icon='sucess')
-                else: return create_table(id=f'trans-table-{self.id}',df=self.data),create_Toast(children=[f'{scale_col} was not Label Encoded!'],header='Label Encoder',icon='danger')
+                    return [dcc.Tabs(children=[dcc.Tab(label='Data',children=create_table(id=f'trans-table-{self.id}',df=self.data)),dcc.Tab(label='Statistics',children=create_table(id=f'stats-table-{self.id}',df=self.stats))])],create_Toast(children=[f'{scale_col}  was Label Encoded!'],header='Label Encoder',icon='sucess')
+                else: return [dcc.Tabs(children=[dcc.Tab(label='Data',children=create_table(id=f'trans-table-{self.id}',df=self.data)),dcc.Tab(label='Statistics',children=create_table(id=f'stats-table-{self.id}',df=self.stats))])],create_Toast(children=[f'{scale_col} was not Label Encoded!'],header='Label Encoder',icon='danger')
 
             if ctx.triggered_id==f'MinMax-scaling-{self.id}':
                 if scale_col=='all columns':
                     scaler=MinMaxScaler()
                     #this works really nicely
-                    self.data=self.data.with_columns(scaler.fit_transform(self.data.select(pl.col(col) for col in self.numeric_cols)))
+                    self.set_data(self.data.with_columns(scaler.fit_transform(self.data.select(pl.col(col) for col in self.numeric_cols))))
                     sucess=True
                 else:
                     scaler=MinMaxScaler()
-                    self.data=self.data.with_columns(scaler.fit_transform(self.data.select(pl.col(scale_col))))
+                    self.set_data(self.data.with_columns(scaler.fit_transform(self.data.select(pl.col(scale_col)))))
                     sucess=True
                 if sucess:
-                    return create_table(id=f'trans-table-{self.id}',df=self.data),create_Toast(children=[f'{scale_col}  was MinMax scaled!'],header='MinMax Scaler',icon='sucess')
-                else: return create_table(id=f'trans-table-{self.id}',df=self.data),create_Toast(children=[f'{scale_col} was not MinMax scaled!'],header='MinMax Scaler',icon='danger')
+                    return [dcc.Tabs(children=[dcc.Tab(label='Data',children=create_table(id=f'trans-table-{self.id}',df=self.data)),dcc.Tab(label='Statistics',children=create_table(id=f'stats-table-{self.id}',df=self.stats))])],create_Toast(children=[f'{scale_col}  was MinMax scaled!'],header='MinMax Scaler',icon='sucess')
+                else: return [dcc.Tabs(children=[dcc.Tab(label='Data',children=create_table(id=f'trans-table-{self.id}',df=self.data)),dcc.Tab(label='Statistics',children=create_table(id=f'stats-table-{self.id}',df=self.stats))])],create_Toast(children=[f'{scale_col} was not MinMax scaled!'],header='MinMax Scaler',icon='danger')
             if ctx.triggered_id==f'Standardize-{self.id}':
                 if scale_col=='all columns':
                     scaler=StandardScaler()
                     #this works really nicely
-                    self.data=self.data.with_columns(scaler.fit_transform(self.data.select(pl.col(col) for col in self.numeric_cols)))
+                    self.set_data(self.data.with_columns(scaler.fit_transform(self.data.select(pl.col(col) for col in self.numeric_cols))))
                     sucess=True
                 else:
                     scaler=StandardScaler()
-                    self.data=self.data.with_columns(scaler.fit_transform(self.data.select(pl.col(scale_col))))
+                    self.set_data(self.data.with_columns(scaler.fit_transform(self.data.select(pl.col(scale_col)))))
                     sucess=True
                 if sucess:
-                    return create_table(id=f'trans-table-{self.id}',df=self.data),create_Toast(children=[f'{scale_col}  was standardized!'],header='Standardize',icon='sucess')
-                else: return create_table(id=f'trans-table-{self.id}',df=self.data),create_Toast(children=[f'{scale_col} was not standardized!'],header='Standardize',icon='danger')
+                    return [dcc.Tabs(children=[dcc.Tab(label='Data',children=create_table(id=f'trans-table-{self.id}',df=self.data)),dcc.Tab(label='Statistics',children=create_table(id=f'stats-table-{self.id}',df=self.stats))])],create_Toast(children=[f'{scale_col}  was standardized!'],header='Standardize',icon='sucess')
+                else: return [dcc.Tabs(children=[dcc.Tab(label='Data',children=create_table(id=f'trans-table-{self.id}',df=self.data)),dcc.Tab(label='Statistics',children=create_table(id=f'stats-table-{self.id}',df=self.stats))])],create_Toast(children=[f'{scale_col} was not standardized!'],header='Standardize',icon='danger')
             if ctx.triggered_id==f'change-type-button-{self.id}':
                 try:
-                    self.data=self.data.with_columns(pl.col(col_type).cast(eval(f'pl.{types}'))).rename({col_type:f"{col_type.split(' ')[0]} [{types}]"})
+                    self.set_data(self.data.with_columns(pl.col(col_type).cast(eval(f'pl.{types}'))).rename({col_type:f"{col_type.split(' ')[0]} [{types}]"}))
                     print(self.data)
                     sucess=True
                 except:
                     sucess=False
                 if sucess:
-                    return create_table(id=f'trans-table-{self.id}',df=self.data),create_Toast(children=[f'The type of {scale_col} was changed to {types}!'],header='Change Type',icon='sucess')
-                else: return create_table(id=f'trans-table-{self.id}',df=self.data),create_Toast(children=[f'The type of {scale_col} could not be changed!'],header='Change Type',icon='danger')
+                    return [dcc.Tabs(children=[dcc.Tab(label='Data',children=create_table(id=f'trans-table-{self.id}',df=self.data)),dcc.Tab(label='Statistics',children=create_table(id=f'stats-table-{self.id}',df=self.stats))])],create_Toast(children=[f'The type of {scale_col} was changed to {types}!'],header='Change Type',icon='sucess')
+                else: return [dcc.Tabs(children=[dcc.Tab(label='Data',children=create_table(id=f'trans-table-{self.id}',df=self.data)),dcc.Tab(label='Statistics',children=create_table(id=f'stats-table-{self.id}',df=self.stats))])],create_Toast(children=[f'The type of {scale_col} could not be changed!'],header='Change Type',icon='danger')
            
 
 

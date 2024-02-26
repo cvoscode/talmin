@@ -15,7 +15,7 @@ from utils.polars_addons import detect_column_types
 save_path=''
 
 class ECDFPlotter(Base_Fig):
-    def __init__(self, id):
+    def __init__(self, id,app):
         self.x=None
         self.y=None
         self.color=None
@@ -27,6 +27,7 @@ class ECDFPlotter(Base_Fig):
         self.discrete_cols=None
         self.title=None
         self.id=id
+        self.cerate_base_callbacks(app)
     def update_title(self,title):
         self.title=title
 
@@ -113,19 +114,15 @@ class ECDFPlotter(Base_Fig):
             html.Hr(),
             dbc.Col([
             create_dropdown_paging(id=f'X-{self.id}',options=self.all_columns,value=None,name='X-Column',multi=True),
-            create_Tooltip('Select a column from your data for the horizontal axis',target=f'X-{self.id}')
-            ]),
-            dbc.Col([
+            create_Tooltip('Select a column from your data for the horizontal axis',target=f'X-{self.id}'),
             create_dropdown_paging(id=f'Y-{self.id}',options=self.all_columns,value=None,name='Y-Column',multi=False),
             create_Tooltip('Select a column from your data for the vertical axis',target=f'Y-{self.id}')
             ]),
             dbc.Col([
-            create_dropdown_paging(id=f'color-{self.id}',options=self.all_columns,value=None,name='Color-Column',multi=False),
-            create_Tooltip('Select a column from your data as color',target=f'color-{self.id}')
-            ]),
-            dbc.Col([
-            create_dropdown_paging(id=f'marginal-{self.id}',options=['rug','histogram','box','violin'],value=None,name='marginal',multi=False),
-            create_Tooltip('Select a column from your data as color',target=f'marginal-{self.id}')
+            create_dropdown_paging(id=f'color-{self.id}',options=self.all_columns,value=None,name='Color Column',multi=False),
+            create_Tooltip('Select a column from your data as color',target=f'color-{self.id}'),
+            create_dropdown_paging(id=f'marginal-{self.id}',options=['rug','histogram','box','violin'],value=None,name='Marginal Plot',multi=False),
+            create_Tooltip('Select a marginal plot',target=f'marginal-{self.id}')
             ]),
             dbc.Col([
             dbc.InputGroup([

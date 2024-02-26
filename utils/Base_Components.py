@@ -26,7 +26,7 @@ def create_Text_Input(id:str,placeholder:str,value=None):
         placeholder (str): placeholder text if nothing is inputted
         value (str): an intial value to be shown
     """
-    return dbc.Input(id=id,type='text',placeholder=placeholder,value=value,debounce=True,className="ml-auto",autocomplete=True)
+    return dbc.Input(id=id,type='text',placeholder=placeholder,value=value,debounce=True,className="dbc",autocomplete=True)
 
 def create_Numeric_Input(id:str,placeholder:str=None,value=None,step=None,min=None,max=None):
     """create a standard text input for the app.
@@ -72,11 +72,11 @@ def create_dropdown(id:str,options:list,value):
     Returns:
         _type_: _description_
     """
-    return dcc.Dropdown(options=options,id=id,value=value, className="dbc")
+    return dcc.Dropdown(id=id,options=options,value=value,className="dbc")
 #dbc.Select(id=id,options=options,value=value)
 
 def create_dropdown_paging(id:str,options:list,value,name,multi):
-    return dbc.InputGroup([dbc.InputGroupText(name,style=dict(width='120px')),dcc.Dropdown(id=id,options=options,value=value,multi=multi,className="dbc",style=dict(width='120px')),dbc.Button(id=f'{id}-prev',children='<<'),dbc.Button(id=f'{id}-next',children='>>')])
+    return dbc.InputGroup([dbc.InputGroupText(name,style=dict(display='flex')),dcc.Dropdown(id=id,options=options,value=value,multi=multi,style=dict(flex='1',)),dbc.Button(id=f'{id}-prev',children='<<'),dbc.Button(id=f'{id}-next',children='>>')],style={'display': 'flex', 'flex-wrap': 'wrap'},className='dbc')
 def create_dropdown_paging_callback(id,app):
     @app.callback(Output(id,'value'),
                   Input(f'{id}-prev','n_clicks'),

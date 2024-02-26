@@ -15,7 +15,7 @@ from utils.polars_addons import detect_column_types
 save_path=''
 
 class BoxPlotter(Base_Fig):
-    def __init__(self, id):
+    def __init__(self, id,app):
         self.x=None
         self.y=None
         self.color=None
@@ -27,6 +27,7 @@ class BoxPlotter(Base_Fig):
         self.discrete_cols=None
         self.title=None
         self.id=id
+        self.cerate_base_callbacks(app)
     def update_title(self,title):
         self.title=title
 

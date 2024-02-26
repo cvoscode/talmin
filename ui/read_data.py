@@ -67,31 +67,26 @@ class DataReader(dash.Dash):
                 else: self.data='file_type'
             else: self.data='file_type'
         else: self.data='data_path'
+        # get column types
+        self.numeric,self.temporal,self.nested,self.discrete=detect_column_types(self.data)
+
 
     def get_ui(self):
-        ui=html.Div([
-            dbc.Row([
-            dbc.Col(dbc.Stack([create_Text_Input(id=f'data_path-input-{self.id}',placeholder='Enter a path to the file you want to read'),
-                               create_Button(id=f'get-data-button-{self.id}',color='primary',children=['Read Data']),
-                               create_dropdown(id=f'select-filetype{self.id}',options=['csv','parquet'],value='csv')],
-                               direction='horizontal',gap=2)),
-            dbc.Col(dbc.Stack([create_dropdown(id=f'seperator-{self.id}',options=[',','.',';'],value=','),
-                               create_dropdown(id=f'has_header-{self.id}',options=['With Column Names','Without Column Names'],value='With Column Names'),
-                               create_dropdown(id=f'low_memory-{self.id}',options=['Compress','No Compression'],value='No Compression')],
-                               direction='horizontal',gap=2
-                               )),
-            ]),
-            dbc.Row(dbc.Col(html.Div(id=f'table-{self.id}')
-                    
-            )),
-            
+        ui=[dbc.Stack([
+                    create_Text_Input(id=f'data_path-input-{self.id}',placeholder='Enter a path to the file you want to read'),
+                    create_Button(id=f'get-data-button-{self.id}',color='primary',children=['Read Data']),
+                    dcc.Dropdown(id=f'select-filetype{self.id}',options=['csv','parquet'],value='csv',style={'flex':'1'}),
+                    dcc.Dropdown(id=f'seperator-{self.id}',options=[',','.',';'],value=',',style={'flex':'1'}),
+                    dcc.Dropdown(id=f'has_header-{self.id}',options=['With Column Names','Without Column Names'],value='With Column Names',style={'flex': '1'}),
+                    dcc.Dropdown(id=f'low_memory-{self.id}',options=['Compress','No Compression'],value='No Compression',style={'flex':'1'}),
+            ],gap=2,direction='horizontal',style={'display': 'flex', 'flex-wrap': 'wrap'}),
+            dbc.Row([html.Div(children=dcc.Loading(id=f'table-{self.id}')),
             dbc.Tooltip(id=f'data_path-tipp-{self.id}',target=f'data_path-input-{self.id}',placement='top',className="ml-auto"),
             create_Tooltip(f'Those are the supported file types',target=f'select-filetype{self.id}'),
             create_Tooltip(f'You can select the seperator for csv files',target=f'seperator-{self.id}'),
             create_Tooltip(f'You can set wether your csv has Column Names or not for csv files',target=f'has_header-{self.id}'),
             create_Tooltip(f'You can set wether you want to compress the data in memory for csv files. You should use this only for big files, since compressing hurts performance',target=f'low_memory-{self.id}'),
-            html.Div(id=f'Info-div-{self.id}')
-        ])
+            html.Div(id=f'Info-div-{self.id}'),])]
         return ui
     def create_base_callbacks(self,app):
         @app.callback(Output(f'low_memory-{self.id}','disabled'),

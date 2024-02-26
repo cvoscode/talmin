@@ -4,3 +4,5 @@ Corellations
     Power Predictive Score
 
 Statistics
+
+Export Plots as JSON. This way you can still change them afterwards
